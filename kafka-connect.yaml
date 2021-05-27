@@ -1,0 +1,17 @@
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  image: abhirockzz/strimzi-kafkaconnect-mongodb:latest
+  version: 2.4.0
+  replicas: 1
+  bootstrapServers: my-cluster-kafka-bootstrap.default.svc:9092
+  config:
+    group.id: strimzi-connect-cluster
+    offset.storage.topic: mongo-connect-cluster-offsets
+    config.storage.topic: mongo-connect-cluster-configs
+    status.storage.topic: mongo-connect-cluster-status
+    transaction.state.log.replication.factor: 1
