@@ -1,0 +1,23 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodelogger
+spec:
+  selector:
+    matchLabels:
+      app: nodelogger
+  template:
+    metadata:
+      labels:
+        app: nodelogger
+    spec:
+      containers:
+      - name: nodelogger
+        image: rahulkohli/nodelogger:v1
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3000

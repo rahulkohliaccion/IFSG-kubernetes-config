@@ -1,0 +1,110 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loggingms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loggingms
+      tier: logging
+  template:
+    metadata:
+      labels:
+        app: loggingms
+        tier: logging
+    spec:
+      containers:
+        - name: loggingms
+          image: ifsgdev/loggingms-dev:v1
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: INFO_LOG_TOPIC
+              value: logs
+            - name: DATABASE_HOST
+              value: mongodb-service
+            - name: DATABASE_PORT
+              value: "27017"
+            - name: DEBUG_LOG_TOPIC
+              value: debug-log
+            - name: ERROR_LOG_TOPIC
+              value: error-log
+            - name: VERBOSE_LOG_TOPIC
+              value: verbose-log
+            - name: FATAL_LOG_TOPIC
+              value: fatal-log
+            - name: KAFKA_BROKERS
+              value: my-cluster-kafka-bootstrap.kafka.svc:9092
+            - name: CONSUMER_GROUP_ID
+              value: my-kafka-cluster
+          ports:
+            - containerPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loggingms
+spec:
+  selector:
+    app: loggingms
+    tier: logging
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: kong
+    konghq.com/override: loggingms-customization
+  name: loggingms-ingress
+  namespace: default
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              serviceName: loggingms
+              servicePort: 3000
+            path: /loggingms
+
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongIngress
+metadata:
+  name: loggingms-customization
+  namespace: default
+proxy:
+  protocol: http
+  connect_timeout: 10000
+  retries: 10
+  read_timeout: 10000
+  write_timeout: 10000
+route:
+  methods:
+    - POST
+    - GET
+    - PUT
+    - OPTIONS
+    - HEAD
+    - DELETE
+  regex_priority: 0
+  strip_path: true
+  preserve_host: true
+  protocols:
+    - http
+    - https
+

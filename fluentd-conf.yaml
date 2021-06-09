@@ -71,7 +71,7 @@ data:
       @type tail
       read_from_head true
       tag "kubernetes.*"
-      path "/var/log/containers/**bankingms**.log"
+      path "/var/log/containers/**nodelogger**.log"
       pos_file "/var/log/kubernetes.log.pos"
       <parse>
         @type kubernetes
@@ -81,6 +81,7 @@ data:
     </source>
 
   fluent-filter.conf: |-
+    # filter to grep only logs with defined patterns in them
     <filter>
       @type grep
       <regexp>
@@ -89,12 +90,30 @@ data:
       </regexp>
     </filter>
 
+    # filter to parse the log as proper JSON
     <filter>
       @type parser
       key_name log
       <parse>
         @type json
       </parse>
+    </filter>
+    
+    # filter to bring keys to root level
+    <filter>
+      @type record_transformer
+      enable_ruby
+      <record>
+        requestId ${record["req"]["id"]}
+        sessionId ${record["req"]["anotherId"]}
+      </record>
+
+      <record>
+        for_remove1 ${record["req"].delete("id")}
+        for_remove2 ${record["req"].delete("anotherId")}
+      </record>
+      
+      remove_keys for_remove1,for_remove2
     </filter>
 
   fluent-match.conf: |-
@@ -107,7 +126,7 @@ data:
       @type null
     </match>
     
-    <match kubernetes.**bankingms**.log>
+    <match kubernetes.**nodelogger**.log>
       @type kafka2
 
       brokers my-cluster-kafka-bootstrap.kafka.svc:9092
